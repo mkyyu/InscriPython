@@ -10,24 +10,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #282c34; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        .container { flex: 1; display: flex; flex-direction: column; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px; background-color: #1e1e1e; }
-        .header h1 { margin: 0; }
+        body { background-color: #282c34; color: white; font-family: Helvetica, Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .container { flex: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: #1e1e1e; border-radius: 8px; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .toolbar { display: flex; align-items: center; }
         .toolbar button { padding: 10px 20px; background: #61dafb; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px; }
         .toolbar button:hover { background: #21a1f1; }
-        .editor-container { flex: 1; display: flex; flex-direction: column; margin-top: 10px; }
-        #editor { flex: 1; height: 300px; background: #1e1e1e; color: white; border-radius: 8px; }
-        .tabs { display: flex; margin-top: 10px; }
-        .tab { flex: 1; padding: 10px; background: #1e1e1e; text-align: center; cursor: pointer; }
+        .editor-container { flex: 1; display: flex; flex-direction: column; margin-top: 20px; }
+        #editor { flex: 1; background: #1e1e1e; color: white; font-family: monospace; }
+        .tabs { display: flex; margin-top: 20px; }
+        .tab { flex: 1; padding: 10px; background: #1e1e1e; text-align: center; cursor: pointer; border-radius: 8px; }
         .tab.active { background: #61dafb; color: black; }
-        .content { display: none; padding: 10px; background: #1e1e1e; border-radius: 8px; margin-top: 10px; flex: 1; overflow: auto; }
+        .content { display: none; padding: 20px; background: #1e1e1e; border-radius: 8px; flex: 1; overflow: auto; font-family: monospace; }
         .content.active { display: block; }
-        #console { background: black; overflow-y: auto; padding: 10px; color: white; border-radius: 8px; }
-        .var-list { background: black; padding: 10px; border-radius: 8px; text-align: left; }
+        #console { background: black; overflow-y: auto; padding: 20px; color: white; border-radius: 8px; flex: 1; }
         .error { color: red; }
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; color: black; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); }
         .modal.active { display: block; }
+        .resizer { width: 100%; height: 10px; cursor: ns-resize; background: #1e1e1e; }
     </style>
 </head>
 <body>
@@ -42,12 +43,11 @@
         <div class="editor-container">
             <textarea id="editor">print("Hello, World!")</textarea>
         </div>
+        <div class="resizer" onmousedown="initResize(event)"></div>
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('console')">Console</div>
-            <div class="tab" onclick="switchTab('variables')">Variables</div>
+            <div class="tab active" onclick="switchTab('console')">Console (stdio)</div>
         </div>
         <div id="console" class="content active"></div>
-        <div id="variables" class="content var-list"></div>
     </div>
     <div id="aboutModal" class="modal">
         <h2>About Python Web IDE</h2>
@@ -71,9 +71,12 @@
             pyodideInstance.runPython(`
                 import sys
                 from io import StringIO
+                import pprint
                 sys.stdout = StringIO()
                 sys.stderr = sys.stdout
+                sys.pp = pprint.PrettyPrinter(indent=4)
             `);
+            document.getElementById("console").textContent = "Welcome to Python Web IDE!\n";
         }
 
         async function runCode() {
@@ -83,20 +86,16 @@
             }
 
             let consoleElement = document.getElementById("console");
-            let varElement = document.getElementById("variables");
             let code = editor.getValue();
             
-            consoleElement.textContent = "Running...\n";
+            consoleElement.textContent += "Running...\n";
 
             try {
                 pyodideInstance.runPython(code);
                 let output = pyodideInstance.runPython("sys.stdout.getvalue()");
-                consoleElement.textContent = output;
-                
-                let vars = pyodideInstance.runPython("locals()");
-                varElement.innerHTML = Object.keys(vars).map(v => `<b>${v}</b>: ${vars[v]}`).join("<br>");
+                consoleElement.textContent += output;
             } catch (error) {
-                consoleElement.innerHTML = `<span class='error'>${error}</span>`;
+                consoleElement.innerHTML += `<span class='error'>${error}</span>`;
             }
         }
 
@@ -115,10 +114,33 @@
             document.getElementById("aboutModal").classList.remove("active");
         }
 
+        function initResize(e) {
+            window.addEventListener('mousemove', resize, false);
+            window.addEventListener('mouseup', stopResize, false);
+        }
+
+        function resize(e) {
+            const editorContainer = document.querySelector('.editor-container');
+            const consoleElement = document.getElementById('console');
+            editorContainer.style.height = (e.clientY - editorContainer.offsetTop) + 'px';
+            consoleElement.style.height = `calc(100% - ${e.clientY - editorContainer.offsetTop}px)`;
+        }
+
+        function stopResize(e) {
+            window.removeEventListener('mousemove', resize, false);
+            window.removeEventListener('mouseup', stopResize, false);
+        }
+
         window.addEventListener("beforeunload", function (e) {
             let message = "You have unsaved Python code. Do you want to save it before leaving?";
             e.returnValue = message;
             return message;
+        });
+
+        window.addEventListener("keydown", function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                runCode();
+            }
         });
         
         initializePyodide();
