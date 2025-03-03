@@ -50,6 +50,8 @@
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      /* bottom padding so there's extra space at page bottom */
+      padding-bottom: 30px;
     }
     
     /* Custom scrollbar */
@@ -102,7 +104,6 @@
       box-shadow: var(--box-shadow);
       color: var(--text-color);
     }
-    /* Default (pink) button background for non-Run buttons */
     .toolbar button:not(.run-button),
     .modal button {
       background: var(--primary-color);
@@ -156,24 +157,26 @@
       overflow: hidden;
     }
     
+    /* Editor is 60% height, console is 40% of remaining space */
     .editor-container {
       flex: 0 0 60%;
       display: flex;
       flex-direction: column;
     }
-    
     .console-container {
       flex: 1;
       display: flex;
       flex-direction: column;
     }
 
-    /* Resizer made invisible, but still draggable */
-    .resizer {
-      height: 2px;
-      cursor: ns-resize;
-      margin: 0 1px;
-      background: transparent; 
+    /* Section Headers (Workspace + Output) */
+    .editor-header,
+    .console-header {
+      padding: 8px 15px;
+      font-size: 14px;
+      font-weight: bold;
+      background-color: #1a1a1a;
+      border-bottom: 1px solid #333;
     }
 
     /* CodeMirror styling */
@@ -263,10 +266,11 @@
       <button class="run-button" onclick="runCode()">
         <span class="material-icons">play_arrow</span>
         <span>Run</span>
-        <span class="shortcut">Shift+Enter</span>
+        <!-- Updated shortcut to Cmd+Enter -->
+        <span class="shortcut">Cmd+Enter</span>
       </button>
       
-      <!-- Save Button -->
+      <!-- Save Button (still Shift+S, as requested) -->
       <button onclick="saveFile()">
         <span class="material-icons">save</span>
         <span>Save</span>
@@ -283,12 +287,15 @@
   
   <main>
     <div class="split-pane">
+      <!-- Editor Card: labeled "Workspace" -->
       <div class="card editor-container">
+        <div class="editor-header">Workspace</div>
         <textarea id="editor">print("Hello, World!")</textarea>
       </div>
-      <!-- Invisible resizer -->
-      <div class="resizer"></div>
+
+      <!-- Console Card: labeled "Output" -->
       <div class="card console-container">
+        <div class="console-header">Output</div>
         <div id="console"></div>
       </div>
     </div>
@@ -322,33 +329,6 @@
   <script>
     let pyodideInstance = null;
     const consoleElement = document.getElementById("console");
-    const resizer = document.querySelector('.resizer');
-    const splitPane = document.querySelector('.split-pane');
-    const editorContainer = document.querySelector('.editor-container');
-    const consoleContainer = document.querySelector('.console-container');
-
-    // ==============================================
-    //  Resizer for the Editor/Console Split
-    // ==============================================
-    let isResizing = false;
-    resizer.addEventListener('mousedown', function() {
-      isResizing = true;
-    });
-    document.addEventListener('mousemove', function(e) {
-      if (!isResizing) return;
-      let offsetY = e.clientY - splitPane.getBoundingClientRect().top;
-      const minEditorHeight = 100;
-      const minConsoleHeight = 50;
-      if (offsetY < minEditorHeight) offsetY = minEditorHeight;
-      if (offsetY > splitPane.clientHeight - minConsoleHeight - resizer.clientHeight) {
-        offsetY = splitPane.clientHeight - minConsoleHeight - resizer.clientHeight;
-      }
-      editorContainer.style.flexBasis = offsetY + 'px';
-      consoleContainer.style.flexBasis = (splitPane.clientHeight - offsetY - resizer.clientHeight) + 'px';
-    });
-    document.addEventListener('mouseup', function() {
-      isResizing = false;
-    });
 
     // ==============================================
     //  Initialize CodeMirror
@@ -388,7 +368,9 @@ builtins.input = custom_input
       addConsoleLine("------------------------------------------------------");
     }
 
-    // Add a new line to the console with a ">" prefix.
+    // ==============================================
+    //  Console Output
+    // ==============================================
     function addConsoleLine(text, isError = false) {
       const line = document.createElement("p");
       line.className = "console-line";
@@ -401,11 +383,11 @@ builtins.input = custom_input
     }
 
     // ==============================================
-    //  Running Python Code
+    //  Running Python Code (Cmd+Enter)
     // ==============================================
     async function runCode() {
+      // If Pyodide is not initialized yet, do so before execution
       if (!pyodideInstance) {
-        // If Pyodide wasn't initialized yet, initialize it first
         consoleElement.innerHTML = "";
         addConsoleLine("Loading Pyodide... Please wait.");
         await initializePyodide();
@@ -427,7 +409,7 @@ builtins.input = custom_input
     }
 
     // ==============================================
-    //  Save File as script.py
+    //  Save File as script.py (Shift+S)
     // ==============================================
     function saveFile() {
       const code = editor.getValue();
@@ -453,18 +435,24 @@ builtins.input = custom_input
       document.getElementById("aboutModal").classList.remove("active");
     }
 
-    // Warn user on page unload if they have unsaved work
+    // ==============================================
+    //  Beforeunload Warning
+    // ==============================================
     window.addEventListener("beforeunload", function (e) {
       let message = "You have unsaved Python code. Do you want to save it before leaving?";
       e.returnValue = message;
       return message;
     });
 
-    // Keyboard Shortcuts
-    // Shift+Enter to Run
+    // ==============================================
+    //  Keyboard Shortcuts
+    // ==============================================
+    // Cmd+Enter to Run
     // Shift+S to Save
     window.addEventListener("keydown", function (e) {
-      if (e.shiftKey && e.key === "Enter") {
+      // On Mac, Cmd is `metaKey`
+      if (e.metaKey && e.key === "Enter") {
+        e.preventDefault();
         runCode();
       }
       if (e.shiftKey && e.key.toLowerCase() === "s") {
