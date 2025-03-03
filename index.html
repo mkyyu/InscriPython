@@ -19,7 +19,7 @@
   <style>
     :root {
       --bg-color: #000;
-      --header-bg: #222;
+      --header-bg: #343434;
       --card-bg: #212121;
       --primary-color: #ff4081;
       --error-color: #ff1744;
@@ -317,7 +317,10 @@ def custom_input(prompt=""):
     return window.prompt(prompt)
 builtins.input = custom_input
       `);
-      addConsoleLine("Welcome to Python Web IDE!");
+      addConsoleLine("Python Portable Environment 2025.109 built on Pyodide.");
+      addConsoleLine("Copyright (c) 2025 Mark Yu. All rights reserved.");
+      addConsoleLine("Check About for important information.");
+      addConsoleLine("------------------------------------------------------");
     }
     
     // Add a new line to the console with a ">" prefix.
@@ -339,7 +342,7 @@ builtins.input = custom_input
         await initializePyodide();
       }
       
-      addConsoleLine("Running...");
+      addConsoleLine("Executing...");
       let code = editor.getValue();
       try {
         await pyodideInstance.runPythonAsync(code);
