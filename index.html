@@ -1,149 +1,266 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Web IDE</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
-    <style>
-        body { background-color: #282c34; color: white; font-family: Helvetica, Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .container { flex: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: #1e1e1e; border-radius: 8px; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .toolbar { display: flex; align-items: center; }
-        .toolbar button { padding: 10px 20px; background: #61dafb; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px; }
-        .toolbar button:hover { background: #21a1f1; }
-        .editor-container { flex: 1; display: flex; flex-direction: column; margin-top: 20px; }
-        #editor { flex: 1; background: #1e1e1e; color: white; font-family: monospace; }
-        .tabs { display: flex; margin-top: 20px; }
-        .tab { flex: 1; padding: 10px; background: #1e1e1e; text-align: center; cursor: pointer; border-radius: 8px; }
-        .tab.active { background: #61dafb; color: black; }
-        .content { display: none; padding: 20px; background: #1e1e1e; border-radius: 8px; flex: 1; overflow: auto; font-family: monospace; }
-        .content.active { display: block; }
-        #console { background: black; overflow-y: auto; padding: 20px; color: white; border-radius: 8px; flex: 1; }
-        .error { color: red; }
-        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; color: black; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); }
-        .modal.active { display: block; }
-        .resizer { width: 100%; height: 10px; cursor: ns-resize; background: #1e1e1e; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python Web IDE</title>
+  
+  <!-- CodeMirror Styles -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css" />
+
+  <!-- Pyodide and CodeMirror Scripts -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #282c34;
+      --header-bg: #1e1e1e;
+      --accent-color: #61dafb;
+      --accent-hover: #21a1f1;
+      --text-color: #ffffff;
+      --modal-bg: #ffffff;
+      --modal-text: #000000;
+      --border-radius: 8px;
+    }
+    
+    /* Basic Reset */
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    header {
+      background-color: var(--header-bg);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    
+    .toolbar button {
+      background-color: var(--accent-color);
+      border: none;
+      padding: 10px 15px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 10px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .toolbar button:hover {
+      background-color: var(--accent-hover);
+    }
+    
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      gap: 15px;
+    }
+    
+    .editor-container,
+    .console-container {
+      flex: 1;
+      background-color: var(--header-bg);
+      border-radius: var(--border-radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .editor-container {
+      min-height: 200px;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .tab {
+      flex: 1;
+      background-color: var(--header-bg);
+      text-align: center;
+      padding: 10px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .tab.active {
+      background-color: var(--accent-color);
+      color: black;
+    }
+    
+    #console {
+      flex: 1;
+      padding: 15px;
+      background-color: #000;
+      font-family: monospace;
+      overflow-y: auto;
+    }
+    
+    /* Modal Styling */
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--modal-bg);
+      color: var(--modal-text);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+      display: none;
+      z-index: 100;
+      max-width: 90%;
+    }
+    
+    .modal.active {
+      display: block;
+    }
+    
+    .modal button {
+      margin-top: 15px;
+      background-color: var(--accent-color);
+      border: none;
+      padding: 10px 15px;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .modal button:hover {
+      background-color: var(--accent-hover);
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 20px;
+      }
+      .toolbar button {
+        font-size: 14px;
+        padding: 8px 12px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Python Web IDE</h1>
-        <div class="toolbar">
-            <button onclick="runCode()">Run</button>
-            <button onclick="showAbout()">About</button>
-        </div>
+  <header>
+    <h1>Python Web IDE</h1>
+    <div class="toolbar">
+      <button onclick="runCode()">Run</button>
+      <button onclick="showAbout()">About</button>
     </div>
-    <div class="container">
-        <div class="editor-container">
-            <textarea id="editor">print("Hello, World!")</textarea>
-        </div>
-        <div class="resizer" onmousedown="initResize(event)"></div>
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('console')">Console (stdio)</div>
-        </div>
-        <div id="console" class="content active"></div>
+  </header>
+  
+  <div class="container">
+    <div class="editor-container">
+      <textarea id="editor">print("Hello, World!")</textarea>
     </div>
-    <div id="aboutModal" class="modal">
-        <h2>About Python Web IDE</h2>
-        <p>A lightweight in-browser Python editor and executor powered by Pyodide.</p>
-        <button onclick="closeAbout()">Close</button>
+    
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('console')">Console (stdio)</div>
     </div>
-    <script>
-        let pyodideInstance = null;
-        let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-            mode: "python",
-            theme: "material-darker",
-            lineNumbers: true,
-            indentUnit: 4,
-            matchBrackets: true
-        });
-
-        async function initializePyodide() {
-            console.log("Loading Pyodide...");
-            pyodideInstance = await loadPyodide();
-            console.log("Pyodide loaded.");
-            pyodideInstance.runPython(`
-                import sys
-                from io import StringIO
-                import pprint
-                sys.stdout = StringIO()
-                sys.stderr = sys.stdout
-                sys.pp = pprint.PrettyPrinter(indent=4)
-            `);
-            document.getElementById("console").textContent = "Welcome to Python Web IDE!\n";
-        }
-
-        async function runCode() {
-            if (!pyodideInstance) {
-                document.getElementById("console").textContent = "Loading Pyodide... Please wait.";
-                await initializePyodide();
-            }
-
-            let consoleElement = document.getElementById("console");
-            let code = editor.getValue();
-            
-            consoleElement.textContent += "Running...\n";
-
-            try {
-                pyodideInstance.runPython(code);
-                let output = pyodideInstance.runPython("sys.stdout.getvalue()");
-                consoleElement.textContent += output;
-            } catch (error) {
-                consoleElement.innerHTML += `<span class='error'>${error}</span>`;
-            }
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-            document.getElementById(tab).classList.add('active');
-            document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
-        }
-
-        function showAbout() {
-            document.getElementById("aboutModal").classList.add("active");
-        }
-
-        function closeAbout() {
-            document.getElementById("aboutModal").classList.remove("active");
-        }
-
-        function initResize(e) {
-            window.addEventListener('mousemove', resize, false);
-            window.addEventListener('mouseup', stopResize, false);
-        }
-
-        function resize(e) {
-            const editorContainer = document.querySelector('.editor-container');
-            const consoleElement = document.getElementById('console');
-            editorContainer.style.height = (e.clientY - editorContainer.offsetTop) + 'px';
-            consoleElement.style.height = `calc(100% - ${e.clientY - editorContainer.offsetTop}px)`;
-        }
-
-        function stopResize(e) {
-            window.removeEventListener('mousemove', resize, false);
-            window.removeEventListener('mouseup', stopResize, false);
-        }
-
-        window.addEventListener("beforeunload", function (e) {
-            let message = "You have unsaved Python code. Do you want to save it before leaving?";
-            e.returnValue = message;
-            return message;
-        });
-
-        window.addEventListener("keydown", function (e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                runCode();
-            }
-        });
-        
-        initializePyodide();
-    </script>
+    
+    <div id="console" class="console-container"></div>
+  </div>
+  
+  <div id="aboutModal" class="modal">
+    <h2>About Python Web IDE</h2>
+    <p>A lightweight in-browser Python editor and executor powered by Pyodide.</p>
+    <button onclick="closeAbout()">Close</button>
+  </div>
+  
+  <script>
+    let pyodideInstance = null;
+    let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+      mode: "python",
+      theme: "material-darker",
+      lineNumbers: true,
+      indentUnit: 4,
+      matchBrackets: true,
+      viewportMargin: Infinity
+    });
+    
+    async function initializePyodide() {
+      console.log("Loading Pyodide...");
+      pyodideInstance = await loadPyodide();
+      console.log("Pyodide loaded.");
+      pyodideInstance.runPython(`
+        import sys
+        from io import StringIO
+        sys.stdout = StringIO()
+        sys.stderr = sys.stdout
+      `);
+      document.getElementById("console").textContent = "Welcome to Python Web IDE!\n";
+    }
+    
+    async function runCode() {
+      if (!pyodideInstance) {
+        document.getElementById("console").textContent = "Loading Pyodide... Please wait.";
+        await initializePyodide();
+      }
+      let consoleElement = document.getElementById("console");
+      let code = editor.getValue();
+      consoleElement.textContent += "Running...\n";
+      try {
+        pyodideInstance.runPython(code);
+        let output = pyodideInstance.runPython("sys.stdout.getvalue()");
+        consoleElement.textContent += output;
+      } catch (error) {
+        consoleElement.innerHTML += `<span style="color: red;">${error}</span>`;
+      }
+    }
+    
+    function switchTab(tab) {
+      // Currently, only the console tab is implemented.
+      // Future expansion can use this function to toggle between multiple tabs.
+    }
+    
+    function showAbout() {
+      document.getElementById("aboutModal").classList.add("active");
+    }
+    
+    function closeAbout() {
+      document.getElementById("aboutModal").classList.remove("active");
+    }
+    
+    window.addEventListener("beforeunload", function (e) {
+      let message = "You have unsaved Python code. Do you want to save it before leaving?";
+      e.returnValue = message;
+      return message;
+    });
+    
+    window.addEventListener("keydown", function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        runCode();
+      }
+    });
+    
+    initializePyodide();
+  </script>
 </body>
 </html>
