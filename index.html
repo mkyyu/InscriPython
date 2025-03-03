@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Python Web IDE</title>
   
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <!-- CodeMirror Styles -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css" />
@@ -16,26 +18,27 @@
 
   <style>
     :root {
-      --bg-color: #282c34;
-      --header-bg: #1e1e1e;
-      --accent-color: #61dafb;
-      --accent-hover: #21a1f1;
-      --text-color: #ffffff;
-      --modal-bg: #ffffff;
-      --modal-text: #000000;
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --primary-color: #bb86fc;
+      --error-color: #cf6679;
+      --text-color: #e0e0e0;
+      --header-bg: #1f1f1f;
       --border-radius: 8px;
+      --font-family: 'Roboto', sans-serif;
     }
     
-    /* Basic Reset */
+    /* Reset */
     * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
     }
     
     body {
-      margin: 0;
       background-color: var(--bg-color);
       color: var(--text-color);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: var(--font-family);
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -44,93 +47,124 @@
     
     header {
       background-color: var(--header-bg);
-      padding: 15px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 15px 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     }
     
     header h1 {
-      margin: 0;
       font-size: 24px;
-    }
-    
-    .toolbar button {
-      background-color: var(--accent-color);
-      border: none;
-      padding: 10px 15px;
-      border-radius: var(--border-radius);
-      cursor: pointer;
-      font-size: 16px;
-      margin-left: 10px;
-      transition: background-color 0.3s ease;
-    }
-    
-    .toolbar button:hover {
-      background-color: var(--accent-hover);
-    }
-    
-    .container {
-      flex: 1;
       display: flex;
-      flex-direction: column;
-      padding: 15px;
-      gap: 15px;
+      align-items: center;
+      gap: 10px;
     }
     
-    .editor-container,
-    .console-container {
-      flex: 1;
-      background-color: var(--header-bg);
-      border-radius: var(--border-radius);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    
-    .editor-container {
-      min-height: 200px;
-    }
-    
-    .tabs {
+    .toolbar {
       display: flex;
       gap: 10px;
     }
     
-    .tab {
-      flex: 1;
-      background-color: var(--header-bg);
-      text-align: center;
-      padding: 10px;
+    .toolbar button {
+      background: var(--primary-color);
+      border: none;
+      padding: 10px 15px;
       border-radius: var(--border-radius);
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+    
+    .toolbar button:hover {
+      background: #9a67ea;
+    }
+    
+    main {
+      flex: 1;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      overflow: auto;
+    }
+    
+    .card {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    /* Fixed height to remove giant space after the editor */
+    .editor-container {
+      height: 300px;
+    }
+    
+    .console-container {
+      background-color: #000;
+      padding: 15px;
+      font-family: monospace;
+      overflow-y: auto;
+      height: 150px;
+    }
+    
+    .console-line {
+      font-style: italic;
+      margin-bottom: 5px;
+      line-height: 1.5;
+    }
+    
+    /* Increase line spacing in the editor */
+    .CodeMirror {
+      height: 100%;
+      line-height: 1.5;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background-color: var(--card-bg);
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.3s;
     }
     
     .tab.active {
-      background-color: var(--accent-color);
+      background-color: var(--primary-color);
       color: black;
     }
     
-    #console {
-      flex: 1;
-      padding: 15px;
-      background-color: #000;
+    /* Inline input for console-based user input */
+    #console-input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      outline: none;
       font-family: monospace;
-      overflow-y: auto;
+      font-size: 14px;
+      display: none;
     }
     
-    /* Modal Styling */
+    /* Modal */
     .modal {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: var(--modal-bg);
-      color: var(--modal-text);
+      background: #fff;
+      color: #000;
       padding: 20px;
       border-radius: var(--border-radius);
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
       display: none;
       z-index: 100;
       max-width: 90%;
@@ -142,20 +176,20 @@
     
     .modal button {
       margin-top: 15px;
-      background-color: var(--accent-color);
+      background-color: var(--primary-color);
       border: none;
       padding: 10px 15px;
       border-radius: var(--border-radius);
       cursor: pointer;
       font-size: 16px;
-      transition: background-color 0.3s ease;
+      transition: background 0.3s;
     }
     
     .modal button:hover {
-      background-color: var(--accent-hover);
+      background: #9a67ea;
     }
     
-    /* Responsive Adjustments */
+    /* Responsive */
     @media (max-width: 768px) {
       header h1 {
         font-size: 20px;
@@ -164,29 +198,42 @@
         font-size: 14px;
         padding: 8px 12px;
       }
+      .console-container {
+        height: 120px;
+      }
+      .editor-container {
+        height: 200px;
+      }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Python Web IDE</h1>
+    <h1><span class="material-icons">code</span> Python Web IDE</h1>
     <div class="toolbar">
-      <button onclick="runCode()">Run</button>
-      <button onclick="showAbout()">About</button>
+      <button onclick="runCode()">
+        <span class="material-icons">play_arrow</span>
+        Run
+      </button>
+      <button onclick="showAbout()">
+        <span class="material-icons">info_outline</span>
+        About
+      </button>
     </div>
   </header>
   
-  <div class="container">
-    <div class="editor-container">
+  <main>
+    <div class="card editor-container">
       <textarea id="editor">print("Hello, World!")</textarea>
     </div>
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('console')">Console (stdio)</div>
+      <div class="tab active" onclick="switchTab('console')">Console</div>
     </div>
     
     <div id="console" class="console-container"></div>
-  </div>
+    <input id="console-input" type="text" placeholder="Type input here and press Enter" />
+  </main>
   
   <div id="aboutModal" class="modal">
     <h2>About Python Web IDE</h2>
@@ -196,6 +243,9 @@
   
   <script>
     let pyodideInstance = null;
+    const consoleElement = document.getElementById("console");
+    const consoleInput = document.getElementById("console-input");
+    
     let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
       mode: "python",
       theme: "material-darker",
@@ -205,39 +255,98 @@
       viewportMargin: Infinity
     });
     
+    // Custom input handler for Python's input() calls.
+    // Returns a Promise that resolves when the user submits input.
+    function getConsoleInput(promptText) {
+      return new Promise((resolve) => {
+        addConsoleLine(promptText);
+        consoleInput.style.display = "block";
+        consoleInput.focus();
+        function handleKey(e) {
+          if (e.key === "Enter") {
+            const value = consoleInput.value;
+            addConsoleLine(value);
+            consoleInput.value = "";
+            consoleInput.style.display = "none";
+            consoleInput.removeEventListener("keydown", handleKey);
+            resolve(value);
+          }
+        }
+        consoleInput.addEventListener("keydown", handleKey);
+      });
+    }
+    
+    // Expose the getConsoleInput function to Python via the js object.
+    window.getConsoleInput = getConsoleInput;
+    
+    // Override Python's input with our custom async version.
+    async function setupCustomInput() {
+      await pyodideInstance.runPythonAsync(`
+import sys
+import asyncio
+import js
+
+async def custom_input(prompt=""):
+    sys.stdout.write(prompt)
+    return await js.getConsoleInput(prompt)
+
+import builtins
+builtins.input = custom_input
+      `);
+    }
+    
     async function initializePyodide() {
       console.log("Loading Pyodide...");
       pyodideInstance = await loadPyodide();
       console.log("Pyodide loaded.");
       pyodideInstance.runPython(`
-        import sys
-        from io import StringIO
-        sys.stdout = StringIO()
-        sys.stderr = sys.stdout
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+sys.stderr = sys.stdout
       `);
-      document.getElementById("console").textContent = "Welcome to Python Web IDE!\n";
+      await setupCustomInput();
+      addConsoleLine("Welcome to Python Web IDE!");
+    }
+    
+    function addConsoleLine(text, isError = false) {
+      const line = document.createElement("p");
+      line.className = "console-line";
+      if (isError) {
+        line.style.color = "var(--error-color)";
+      }
+      line.textContent = text;
+      consoleElement.appendChild(line);
+      consoleElement.scrollTop = consoleElement.scrollHeight;
     }
     
     async function runCode() {
       if (!pyodideInstance) {
-        document.getElementById("console").textContent = "Loading Pyodide... Please wait.";
+        consoleElement.innerHTML = "";
+        addConsoleLine("Loading Pyodide... Please wait.");
         await initializePyodide();
       }
-      let consoleElement = document.getElementById("console");
+      
+      addConsoleLine("Running...");
       let code = editor.getValue();
-      consoleElement.textContent += "Running...\n";
       try {
-        pyodideInstance.runPython(code);
+        await pyodideInstance.runPythonAsync(code);
         let output = pyodideInstance.runPython("sys.stdout.getvalue()");
-        consoleElement.textContent += output;
+        // Split output by newline and add each as a separate line.
+        output.split("\n").forEach(line => {
+          if(line.trim() !== "") {
+            addConsoleLine(line);
+          }
+        });
+        // Clear stdout after running.
+        pyodideInstance.runPython("sys.stdout.truncate(0); sys.stdout.seek(0)");
       } catch (error) {
-        consoleElement.innerHTML += `<span style="color: red;">${error}</span>`;
+        addConsoleLine(error.toString(), true);
       }
     }
     
     function switchTab(tab) {
-      // Currently, only the console tab is implemented.
-      // Future expansion can use this function to toggle between multiple tabs.
+      // Future expansion for additional tabs.
     }
     
     function showAbout() {
