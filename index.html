@@ -18,12 +18,12 @@
   
   <style>
     :root {
-      --bg-color: #000000;
-      --header-bg: #222222;
+      --bg-color: #000;
+      --header-bg: #222;
       --card-bg: #212121;
       --primary-color: #ff4081;
       --error-color: #ff1744;
-      --text-color: #ffffff;
+      --text-color: #fff;
       --border-radius: 8px;
       --font-family: 'Roboto', sans-serif;
     }
@@ -53,7 +53,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 15px 20px;
-      /* Increased shadow for a more dramatic effect */
+      /* Extra shadow after the top bar */
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
     }
     
@@ -72,6 +72,7 @@
     
     .toolbar button {
       background: var(--primary-color);
+      color: var(--text-color); /* White text */
       border: none;
       padding: 10px 15px;
       border-radius: var(--border-radius);
@@ -89,7 +90,7 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.8);
     }
     
-    /* Display the shortcut on the run button */
+    /* Shortcut indicator on the Run button */
     .shortcut {
       font-size: 12px;
       opacity: 0.8;
@@ -159,6 +160,29 @@
       line-height: 1.6;
     }
     
+    /* Input container always present at the bottom of the console */
+    #input-container {
+      display: none;
+      padding: 5px 15px;
+      background-color: #000;
+      border-top: 1px solid #444;
+      align-items: center;
+    }
+    #input-container span {
+      margin-right: 8px;
+      font-size: 14px;
+    }
+    #console-input {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      outline: none;
+      font-family: monospace;
+      font-size: 14px;
+      background-color: transparent;
+      color: var(--text-color);
+    }
+    
     /* Modal (About window) styling */
     .modal {
       position: fixed;
@@ -189,6 +213,7 @@
     .modal button {
       margin-top: 15px;
       background-color: var(--primary-color);
+      color: var(--text-color);
       border: none;
       padding: 10px 15px;
       border-radius: var(--border-radius);
@@ -242,6 +267,11 @@
       <div class="resizer"></div>
       <div class="card console-container">
         <div id="console"></div>
+        <!-- Input container for inline user input -->
+        <div id="input-container">
+          <span>User Input:</span>
+          <input id="console-input" type="text" placeholder="Type here and press Enter" />
+        </div>
       </div>
     </div>
   </main>
@@ -258,6 +288,8 @@
   <script>
     let pyodideInstance = null;
     const consoleElement = document.getElementById("console");
+    const inputContainer = document.getElementById("input-container");
+    const consoleInput = document.getElementById("console-input");
     const resizer = document.querySelector('.resizer');
     const splitPane = document.querySelector('.split-pane');
     const editorContainer = document.querySelector('.editor-container');
@@ -273,8 +305,8 @@
       let offsetY = e.clientY - splitPane.getBoundingClientRect().top;
       const minEditorHeight = 100;
       const minConsoleHeight = 50;
-      if(offsetY < minEditorHeight) offsetY = minEditorHeight;
-      if(offsetY > splitPane.clientHeight - minConsoleHeight - resizer.clientHeight)
+      if (offsetY < minEditorHeight) offsetY = minEditorHeight;
+      if (offsetY > splitPane.clientHeight - minConsoleHeight - resizer.clientHeight)
          offsetY = splitPane.clientHeight - minConsoleHeight - resizer.clientHeight;
       editorContainer.style.flexBasis = offsetY + 'px';
       consoleContainer.style.flexBasis = (splitPane.clientHeight - offsetY - resizer.clientHeight) + 'px';
@@ -292,7 +324,31 @@
       viewportMargin: Infinity
     });
     
-    // Override Python's input() with synchronous window.prompt
+    // Custom asynchronous input using the inline input bar.
+    async function customInput(promptText) {
+      // Display prompt in console
+      addConsoleLine(promptText);
+      // Show the input container
+      inputContainer.style.display = "flex";
+      consoleInput.focus();
+      return new Promise(resolve => {
+        function handleKey(e) {
+          if (e.key === "Enter") {
+            const value = consoleInput.value;
+            addConsoleLine(value);
+            consoleInput.value = "";
+            inputContainer.style.display = "none";
+            consoleInput.removeEventListener("keydown", handleKey);
+            resolve(value);
+          }
+        }
+        consoleInput.addEventListener("keydown", handleKey);
+      });
+    }
+    
+    // Expose customInput to Python.
+    window.customInput = customInput;
+    
     async function initializePyodide() {
       console.log("Loading Pyodide...");
       pyodideInstance = await loadPyodide();
@@ -305,9 +361,9 @@ sys.stderr = sys.stdout
       `);
       await pyodideInstance.runPythonAsync(`
 import builtins
-def custom_input(prompt=""):
-    from js import window
-    return window.prompt(prompt)
+async def custom_input(prompt=""):
+    from js import customInput
+    return await customInput(prompt)
 builtins.input = custom_input
       `);
       addConsoleLine("Welcome to Python Web IDE!");
@@ -338,7 +394,7 @@ builtins.input = custom_input
         await pyodideInstance.runPythonAsync(code);
         let output = pyodideInstance.runPython("sys.stdout.getvalue()");
         output.split("\n").forEach(line => {
-          if(line.trim() !== "") {
+          if (line.trim() !== "") {
             addConsoleLine(line);
           }
         });
