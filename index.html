@@ -1,4 +1,3 @@
-<!-- Copyright (C) 2025 Yueming (mkyuu), All rights reserved-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,22 +6,27 @@
     <title>Python Web IDE</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
-        #editor, #console { width: 100%; height: 200px; padding: 10px; font-family: monospace; background: white; border: 1px solid #ddd; }
-        #console { background: black; color: white; overflow-y: auto; padding: 10px; }
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #282c34; color: white; text-align: center; }
+        #editor, #console { width: 90%; height: 250px; padding: 10px; font-family: monospace; background: #1e1e1e; color: white; border: 1px solid #555; border-radius: 8px; margin: 10px auto; display: block; }
+        #console { background: black; overflow-y: auto; padding: 10px; }
         .error { color: red; }
-        .var-list { background: white; padding: 10px; border: 1px solid #ddd; margin-top: 10px; }
+        .var-list { background: #1e1e1e; padding: 10px; border: 1px solid #555; border-radius: 8px; margin: 10px auto; width: 90%; text-align: left; }
+        button { padding: 10px 20px; margin: 10px; background: #61dafb; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #21a1f1; }
+        .loading { display: none; font-size: 14px; color: yellow; }
     </style>
 </head>
 <body>
-    <h2>Python Web IDE</h2>
+    <h1>Python Web IDE</h1>
     <textarea id="editor">print("Hello, World!")</textarea>
+    <br>
     <button onclick="runCode()">Run</button>
+    <p id="loading" class="loading">Running...</p>
     <h3>Console Output:</h3>
     <pre id="console"></pre>
     <h3>Variables:</h3>
     <div id="variables" class="var-list"></div>
-
+    
     <script>
         let pyodideInstance = null;
 
@@ -47,23 +51,38 @@
             let consoleElement = document.getElementById("console");
             let varElement = document.getElementById("variables");
             let code = document.getElementById("editor").value;
-
-            consoleElement.textContent = "Running...\n";
+            let loadingElement = document.getElementById("loading");
+            
+            loadingElement.style.display = "block";
+            consoleElement.textContent = "";
 
             try {
                 pyodideInstance.runPython(code);
                 let output = pyodideInstance.runPython("sys.stdout.getvalue()");
                 consoleElement.textContent = output;
-
+                
                 let vars = pyodideInstance.runPython("locals()");
                 varElement.innerHTML = Object.keys(vars).map(v => `<b>${v}</b>: ${vars[v]}`).join("<br>");
             } catch (error) {
                 consoleElement.innerHTML = `<span class='error'>${error}</span>`;
+            } finally {
+                loadingElement.style.display = "none";
             }
         }
 
+        window.addEventListener("beforeunload", function (e) {
+            let message = "You have unsaved Python code. Do you want to save it before leaving?";
+            e.returnValue = message;
+            return message;
+        });
+
+        function showAbout() {
+            alert("Python Web IDE - A lightweight in-browser Python editor and executor powered by Pyodide.");
+        }
+        
         // Preload Pyodide as soon as the page loads
         initializePyodide();
     </script>
+    <button onclick="showAbout()">About</button>
 </body>
 </html>
