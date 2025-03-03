@@ -72,7 +72,7 @@
     
     .toolbar button {
       background: var(--primary-color);
-      color: var(--text-color); /* White text */
+      color: var(--text-color);
       border: none;
       padding: 10px 15px;
       border-radius: var(--border-radius);
@@ -90,7 +90,7 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.8);
     }
     
-    /* Shortcut indicator on the Run button */
+    /* Shortcut indicators */
     .shortcut {
       font-size: 12px;
       opacity: 0.8;
@@ -114,7 +114,7 @@
     .card {
       background-color: var(--card-bg);
       border-radius: var(--border-radius);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
       overflow: hidden;
     }
     
@@ -158,29 +158,6 @@
       font-style: italic;
       margin-bottom: 5px;
       line-height: 1.6;
-    }
-    
-    /* Input container always present at the bottom of the console */
-    #input-container {
-      display: none;
-      padding: 5px 15px;
-      background-color: #000;
-      border-top: 1px solid #444;
-      align-items: center;
-    }
-    #input-container span {
-      margin-right: 8px;
-      font-size: 14px;
-    }
-    #console-input {
-      flex: 1;
-      padding: 8px;
-      border: none;
-      outline: none;
-      font-family: monospace;
-      font-size: 14px;
-      background-color: transparent;
-      color: var(--text-color);
     }
     
     /* Modal (About window) styling */
@@ -252,6 +229,11 @@
         Run
         <span class="shortcut">(Shift+Enter)</span>
       </button>
+      <button onclick="saveFile()">
+        <span class="material-icons">save</span>
+        Save
+        <span class="shortcut">(Shift+S)</span>
+      </button>
       <button onclick="showAbout()">
         <span class="material-icons">info_outline</span>
         About
@@ -267,11 +249,6 @@
       <div class="resizer"></div>
       <div class="card console-container">
         <div id="console"></div>
-        <!-- Input container for inline user input -->
-        <div id="input-container">
-          <span>User Input:</span>
-          <input id="console-input" type="text" placeholder="Type here and press Enter" />
-        </div>
       </div>
     </div>
   </main>
@@ -288,8 +265,6 @@
   <script>
     let pyodideInstance = null;
     const consoleElement = document.getElementById("console");
-    const inputContainer = document.getElementById("input-container");
-    const consoleInput = document.getElementById("console-input");
     const resizer = document.querySelector('.resizer');
     const splitPane = document.querySelector('.split-pane');
     const editorContainer = document.querySelector('.editor-container');
@@ -324,31 +299,7 @@
       viewportMargin: Infinity
     });
     
-    // Custom asynchronous input using the inline input bar.
-    async function customInput(promptText) {
-      // Display prompt in console
-      addConsoleLine(promptText);
-      // Show the input container
-      inputContainer.style.display = "flex";
-      consoleInput.focus();
-      return new Promise(resolve => {
-        function handleKey(e) {
-          if (e.key === "Enter") {
-            const value = consoleInput.value;
-            addConsoleLine(value);
-            consoleInput.value = "";
-            inputContainer.style.display = "none";
-            consoleInput.removeEventListener("keydown", handleKey);
-            resolve(value);
-          }
-        }
-        consoleInput.addEventListener("keydown", handleKey);
-      });
-    }
-    
-    // Expose customInput to Python.
-    window.customInput = customInput;
-    
+    // Override Python's input() with a synchronous native prompt.
     async function initializePyodide() {
       console.log("Loading Pyodide...");
       pyodideInstance = await loadPyodide();
@@ -361,9 +312,9 @@ sys.stderr = sys.stdout
       `);
       await pyodideInstance.runPythonAsync(`
 import builtins
-async def custom_input(prompt=""):
-    from js import customInput
-    return await customInput(prompt)
+def custom_input(prompt=""):
+    from js import window
+    return window.prompt(prompt)
 builtins.input = custom_input
       `);
       addConsoleLine("Welcome to Python Web IDE!");
@@ -404,6 +355,21 @@ builtins.input = custom_input
       }
     }
     
+    // Save file function: triggers a download of the editor content as script.py.
+    function saveFile() {
+      const code = editor.getValue();
+      const blob = new Blob([code], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "script.py";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      addConsoleLine("File saved as script.py");
+    }
+    
     function showAbout() {
       document.getElementById("aboutModal").classList.add("active");
     }
@@ -422,6 +388,11 @@ builtins.input = custom_input
     window.addEventListener("keydown", function (e) {
       if (e.shiftKey && e.key === "Enter") {
         runCode();
+      }
+      // Save on Shift+S (case insensitive)
+      if (e.shiftKey && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        saveFile();
       }
     });
     
