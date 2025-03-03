@@ -15,26 +15,28 @@
   <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
-
+  
   <style>
     :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --primary-color: #bb86fc;
-      --error-color: #cf6679;
-      --text-color: #e0e0e0;
-      --header-bg: #1f1f1f;
+      --bg-color: #000000;
+      --header-bg: #222222;
+      --card-bg: #212121;
+      --primary-color: #ff4081;
+      --error-color: #ff1744;
+      --text-color: #ffffff;
       --border-radius: 8px;
       --font-family: 'Roboto', sans-serif;
     }
     
-    /* Reset */
+    /* Reset and full-page layout */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+    html, body {
+      height: 100%;
+    }
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
@@ -51,7 +53,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 15px 20px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
     }
     
     header h1 {
@@ -59,6 +61,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
     }
     
     .toolbar {
@@ -76,74 +79,79 @@
       align-items: center;
       gap: 5px;
       font-size: 16px;
-      transition: background 0.3s;
+      transition: background 0.3s, box-shadow 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
     }
     
     .toolbar button:hover {
-      background: #9a67ea;
+      background: #e73370;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.8);
     }
     
     main {
       flex: 1;
-      padding: 15px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
-      overflow: auto;
+      overflow: hidden;
+    }
+    
+    /* Split Pane for editor and console */
+    .split-pane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
     
     .card {
       background-color: var(--card-bg);
       border-radius: var(--border-radius);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
       overflow: hidden;
     }
     
-    /* Fixed height to remove giant space after the editor */
+    .editor-container, .console-container {
+      overflow: hidden;
+    }
+    
+    /* Initial ratio: editor 60%, console 40% */
     .editor-container {
-      height: 300px;
+      flex: 0 0 60%;
     }
     
     .console-container {
-      background-color: #000;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Resizer */
+    .resizer {
+      height: 5px;
+      background: #444;
+      cursor: ns-resize;
+    }
+    
+    /* CodeMirror styling */
+    .CodeMirror {
+      height: 100%;
+      line-height: 1.6;
+    }
+    
+    /* Console styling */
+    #console {
+      flex: 1;
       padding: 15px;
       font-family: monospace;
       overflow-y: auto;
-      height: 150px;
     }
     
     .console-line {
       font-style: italic;
       margin-bottom: 5px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
     
-    /* Increase line spacing in the editor */
-    .CodeMirror {
-      height: 100%;
-      line-height: 1.5;
-    }
-    
-    /* Tabs */
-    .tabs {
-      display: flex;
-      background-color: var(--card-bg);
-    }
-    
-    .tab {
-      flex: 1;
-      padding: 10px;
-      text-align: center;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    
-    .tab.active {
-      background-color: var(--primary-color);
-      color: black;
-    }
-    
-    /* Inline input for console-based user input */
+    /* (Unused now since we use prompt() for input) */
     #console-input {
       width: 100%;
       padding: 10px;
@@ -152,19 +160,21 @@
       font-family: monospace;
       font-size: 14px;
       display: none;
+      background-color: #000;
+      color: var(--text-color);
     }
     
-    /* Modal */
+    /* Modal (About window) styling */
     .modal {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: #fff;
-      color: #000;
+      background: var(--card-bg);
+      color: var(--text-color);
       padding: 20px;
       border-radius: var(--border-radius);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
       display: none;
       z-index: 100;
       max-width: 90%;
@@ -172,6 +182,13 @@
     
     .modal.active {
       display: block;
+    }
+    
+    .modal h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
     }
     
     .modal button {
@@ -182,11 +199,13 @@
       border-radius: var(--border-radius);
       cursor: pointer;
       font-size: 16px;
-      transition: background 0.3s;
+      transition: background 0.3s, box-shadow 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
     }
     
     .modal button:hover {
-      background: #9a67ea;
+      background: #e73370;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.8);
     }
     
     /* Responsive */
@@ -198,18 +217,15 @@
         font-size: 14px;
         padding: 8px 12px;
       }
-      .console-container {
-        height: 120px;
-      }
-      .editor-container {
-        height: 200px;
-      }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1><span class="material-icons">code</span> Python Web IDE</h1>
+    <h1>
+      <span class="material-icons">code</span>
+      Python Web IDE
+    </h1>
     <div class="toolbar">
       <button onclick="runCode()">
         <span class="material-icons">play_arrow</span>
@@ -223,20 +239,22 @@
   </header>
   
   <main>
-    <div class="card editor-container">
-      <textarea id="editor">print("Hello, World!")</textarea>
+    <div class="split-pane">
+      <div class="card editor-container">
+        <textarea id="editor">print("Hello, World!")</textarea>
+      </div>
+      <div class="resizer"></div>
+      <div class="card console-container">
+        <div id="console"></div>
+      </div>
     </div>
-    
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('console')">Console</div>
-    </div>
-    
-    <div id="console" class="console-container"></div>
-    <input id="console-input" type="text" placeholder="Type input here and press Enter" />
   </main>
   
   <div id="aboutModal" class="modal">
-    <h2>About Python Web IDE</h2>
+    <h2>
+      <span class="material-icons">extension</span>
+      About Python Web IDE
+    </h2>
     <p>A lightweight in-browser Python editor and executor powered by Pyodide.</p>
     <button onclick="closeAbout()">Close</button>
   </div>
@@ -244,7 +262,30 @@
   <script>
     let pyodideInstance = null;
     const consoleElement = document.getElementById("console");
-    const consoleInput = document.getElementById("console-input");
+    const resizer = document.querySelector('.resizer');
+    const splitPane = document.querySelector('.split-pane');
+    const editorContainer = document.querySelector('.editor-container');
+    const consoleContainer = document.querySelector('.console-container');
+
+    // Resizer functionality for the split pane
+    let isResizing = false;
+    resizer.addEventListener('mousedown', function(e) {
+      isResizing = true;
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!isResizing) return;
+      let offsetY = e.clientY - splitPane.getBoundingClientRect().top;
+      const minEditorHeight = 100;
+      const minConsoleHeight = 50;
+      if(offsetY < minEditorHeight) offsetY = minEditorHeight;
+      if(offsetY > splitPane.clientHeight - minConsoleHeight - resizer.clientHeight)
+         offsetY = splitPane.clientHeight - minConsoleHeight - resizer.clientHeight;
+      editorContainer.style.flexBasis = offsetY + 'px';
+      consoleContainer.style.flexBasis = (splitPane.clientHeight - offsetY - resizer.clientHeight) + 'px';
+    });
+    document.addEventListener('mouseup', function(e) {
+      isResizing = false;
+    });
     
     let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
       mode: "python",
@@ -255,46 +296,7 @@
       viewportMargin: Infinity
     });
     
-    // Custom input handler for Python's input() calls.
-    // Returns a Promise that resolves when the user submits input.
-    function getConsoleInput(promptText) {
-      return new Promise((resolve) => {
-        addConsoleLine(promptText);
-        consoleInput.style.display = "block";
-        consoleInput.focus();
-        function handleKey(e) {
-          if (e.key === "Enter") {
-            const value = consoleInput.value;
-            addConsoleLine(value);
-            consoleInput.value = "";
-            consoleInput.style.display = "none";
-            consoleInput.removeEventListener("keydown", handleKey);
-            resolve(value);
-          }
-        }
-        consoleInput.addEventListener("keydown", handleKey);
-      });
-    }
-    
-    // Expose the getConsoleInput function to Python via the js object.
-    window.getConsoleInput = getConsoleInput;
-    
-    // Override Python's input with our custom async version.
-    async function setupCustomInput() {
-      await pyodideInstance.runPythonAsync(`
-import sys
-import asyncio
-import js
-
-async def custom_input(prompt=""):
-    sys.stdout.write(prompt)
-    return await js.getConsoleInput(prompt)
-
-import builtins
-builtins.input = custom_input
-      `);
-    }
-    
+    // Override Python's input() with synchronous window.prompt
     async function initializePyodide() {
       console.log("Loading Pyodide...");
       pyodideInstance = await loadPyodide();
@@ -305,17 +307,24 @@ from io import StringIO
 sys.stdout = StringIO()
 sys.stderr = sys.stdout
       `);
-      await setupCustomInput();
+      await pyodideInstance.runPythonAsync(`
+import builtins
+def custom_input(prompt=""):
+    from js import window
+    return window.prompt(prompt)
+builtins.input = custom_input
+      `);
       addConsoleLine("Welcome to Python Web IDE!");
     }
     
+    // Add a new line to the console with a ">" prefix.
     function addConsoleLine(text, isError = false) {
       const line = document.createElement("p");
       line.className = "console-line";
       if (isError) {
         line.style.color = "var(--error-color)";
       }
-      line.textContent = text;
+      line.textContent = "> " + text;
       consoleElement.appendChild(line);
       consoleElement.scrollTop = consoleElement.scrollHeight;
     }
@@ -332,21 +341,15 @@ sys.stderr = sys.stdout
       try {
         await pyodideInstance.runPythonAsync(code);
         let output = pyodideInstance.runPython("sys.stdout.getvalue()");
-        // Split output by newline and add each as a separate line.
         output.split("\n").forEach(line => {
           if(line.trim() !== "") {
             addConsoleLine(line);
           }
         });
-        // Clear stdout after running.
         pyodideInstance.runPython("sys.stdout.truncate(0); sys.stdout.seek(0)");
       } catch (error) {
         addConsoleLine(error.toString(), true);
       }
-    }
-    
-    function switchTab(tab) {
-      // Future expansion for additional tabs.
     }
     
     function showAbout() {
