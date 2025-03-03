@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Python Web IDE</title>
-  
+
   <!-- Material Icons -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <!-- CodeMirror Styles -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css"/>
 
   <!-- Pyodide and CodeMirror Scripts -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
@@ -18,16 +18,21 @@
   
   <style>
     :root {
-      --bg-color: #000;
-      --header-bg: #343434;
-      --card-bg: #212121;
-      --primary-color: #ff4081;
-      --error-color: #ff1744;
-      --text-color: #fff;
+      /* Dark-only theme variables */
+      --bg-color: #121212;
+      --header-bg: #212121;
+      --card-bg: #2a2a2a;
+      --primary-color: #0285ff;
+      --error-color: #e53935;
+      --text-color: #ffffff;
       --border-radius: 8px;
       --font-family: 'Roboto', sans-serif;
+
+      --box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+      --button-hover-shadow: 0 4px 12px rgba(0,0,0,0.8);
+      --transition: 0.3s;
     }
-    
+
     /* Reset and full-page layout */
     * {
       margin: 0;
@@ -47,84 +52,114 @@
       overflow: hidden;
     }
     
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #2c2c2c;
+      border-radius: var(--border-radius);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary-color);
+      border-radius: var(--border-radius);
+    }
+
     header {
       background-color: var(--header-bg);
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 15px 20px;
-      /* Extra shadow after the top bar */
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.8);
     }
-    
+
     header h1 {
       font-size: 24px;
       display: flex;
       align-items: center;
       gap: 10px;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
     }
-    
+
     .toolbar {
       display: flex;
       gap: 10px;
     }
-    
-    .toolbar button {
-      background: var(--primary-color);
-      color: var(--text-color);
+
+    /* Common button style */
+    .toolbar button,
+    .modal button {
       border: none;
       padding: 10px 15px;
       border-radius: var(--border-radius);
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 5px;
       font-size: 16px;
-      transition: background 0.3s, box-shadow 0.3s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      gap: 6px;
+      transition: background var(--transition), box-shadow var(--transition);
+      box-shadow: var(--box-shadow);
+      color: var(--text-color);
     }
-    
-    .toolbar button:hover {
-      background: #e73370;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.8);
+    /* Default (pink) button background for non-Run buttons */
+    .toolbar button:not(.run-button),
+    .modal button {
+      background: var(--primary-color);
     }
-    
-    /* Shortcut indicators */
+    .toolbar button:not(.run-button):hover,
+    .modal button:hover {
+      background: #0059d7;
+      box-shadow: var(--button-hover-shadow);
+    }
+
+    /* Green Run Button specifically */
+    .toolbar button.run-button {
+      background: #0fa27f;
+    }
+    .toolbar button.run-button:hover {
+      background: #0d8a6d;
+      box-shadow: var(--button-hover-shadow);
+    }
+
     .shortcut {
       font-size: 12px;
       opacity: 0.8;
-      margin-left: 4px;
+      margin-left: auto; /* so it aligns to the right in the same line */
+      display: inline-block;
     }
-    
+
     main {
       flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
-    
+
     /* Split Pane for editor and console */
     .split-pane {
       display: flex;
       flex-direction: column;
       height: 100%;
     }
-    
+
     .card {
       background-color: var(--card-bg);
       border-radius: var(--border-radius);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
+      margin: 8px;
+    }
+
+    .editor-container,
+    .console-container {
       overflow: hidden;
     }
     
-    .editor-container, .console-container {
-      overflow: hidden;
-    }
-    
-    /* Initial ratio: editor 60%, console 40% */
     .editor-container {
       flex: 0 0 60%;
+      display: flex;
+      flex-direction: column;
     }
     
     .console-container {
@@ -132,20 +167,22 @@
       display: flex;
       flex-direction: column;
     }
-    
-    /* Resizer */
+
+    /* Resizer made invisible, but still draggable */
     .resizer {
-      height: 5px;
-      background: #444;
+      height: 2px;
       cursor: ns-resize;
+      margin: 0 1px;
+      background: transparent; 
     }
-    
+
     /* CodeMirror styling */
     .CodeMirror {
       height: 100%;
-      line-height: 1.6;
+      line-height: 1.8;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
     }
-    
+
     /* Console styling */
     #console {
       flex: 1;
@@ -153,13 +190,14 @@
       font-family: monospace;
       overflow-y: auto;
     }
-    
     .console-line {
       font-style: italic;
       margin-bottom: 5px;
       line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
     }
-    
+
     /* Modal (About window) styling */
     .modal {
       position: fixed;
@@ -170,41 +208,35 @@
       color: var(--text-color);
       padding: 20px;
       border-radius: var(--border-radius);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
       display: none;
       z-index: 100;
       max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
     }
-    
     .modal.active {
       display: block;
+      animation: fadeIn var(--transition) ease-in;
     }
-    
     .modal h2 {
       display: flex;
       align-items: center;
       gap: 10px;
       margin-bottom: 10px;
     }
-    
-    .modal button {
-      margin-top: 15px;
-      background-color: var(--primary-color);
-      color: var(--text-color);
-      border: none;
-      padding: 10px 15px;
-      border-radius: var(--border-radius);
-      cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s, box-shadow 0.3s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
     }
-    
-    .modal button:hover {
-      background: #e73370;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.8);
-    }
-    
+
     /* Responsive */
     @media (max-width: 768px) {
       header h1 {
@@ -213,6 +245,9 @@
       .toolbar button {
         font-size: 14px;
         padding: 8px 12px;
+      }
+      .shortcut {
+        display: none; /* hide shortcuts on smaller screens */
       }
     }
   </style>
@@ -224,19 +259,24 @@
       Python Web IDE
     </h1>
     <div class="toolbar">
-      <button onclick="runCode()">
+      <!-- Green Run Button -->
+      <button class="run-button" onclick="runCode()">
         <span class="material-icons">play_arrow</span>
-        Run
+        <span>Run</span>
         <span class="shortcut">Shift+Enter</span>
       </button>
+      
+      <!-- Save Button -->
       <button onclick="saveFile()">
         <span class="material-icons">save</span>
-        Save
+        <span>Save</span>
         <span class="shortcut">Shift+S</span>
       </button>
+
+      <!-- About Button -->
       <button onclick="showAbout()">
         <span class="material-icons">info_outline</span>
-        About
+        <span>About</span>
       </button>
     </div>
   </header>
@@ -246,6 +286,7 @@
       <div class="card editor-container">
         <textarea id="editor">print("Hello, World!")</textarea>
       </div>
+      <!-- Invisible resizer -->
       <div class="resizer"></div>
       <div class="card console-container">
         <div id="console"></div>
@@ -261,11 +302,20 @@
     <p>A lightweight in-browser Python editor and executor powered by Pyodide. </p>
     <br>
 
-    <p>Disclaimer: <br>THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT, OR OTHERWISE, ARISING FROM THE USE OF THIS SOFTWARE.</p><br>
-        <p>Copyright © 2024, 2025 Mark Yu, mkyyu. All rights reserved.</p><br>
-        <p>
-            <a href="https://github.com/mkyyu/python-web-ide">View source (GitHub)</a>
-             </p>
+    <p>Disclaimer:<br>
+      THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTIES, EXPRESS OR IMPLIED, 
+      INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+      OR NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE 
+      LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT, 
+      OR OTHERWISE, ARISING FROM THE USE OF THIS SOFTWARE.
+    </p><br>
+    <p>
+      Copyright © 2024, 2025 Mark Yu, mkyyu.
+      All rights reserved.
+    </p><br>
+    <p>
+      <a href="https://github.com/mkyyu/python-web-ide">View source (GitHub)</a><br><br>
+    </p>
     <button onclick="closeAbout()">Close</button>
   </div>
   
@@ -277,9 +327,11 @@
     const editorContainer = document.querySelector('.editor-container');
     const consoleContainer = document.querySelector('.console-container');
 
-    // Resizer functionality for the split pane
+    // ==============================================
+    //  Resizer for the Editor/Console Split
+    // ==============================================
     let isResizing = false;
-    resizer.addEventListener('mousedown', function(e) {
+    resizer.addEventListener('mousedown', function() {
       isResizing = true;
     });
     document.addEventListener('mousemove', function(e) {
@@ -288,15 +340,19 @@
       const minEditorHeight = 100;
       const minConsoleHeight = 50;
       if (offsetY < minEditorHeight) offsetY = minEditorHeight;
-      if (offsetY > splitPane.clientHeight - minConsoleHeight - resizer.clientHeight)
-         offsetY = splitPane.clientHeight - minConsoleHeight - resizer.clientHeight;
+      if (offsetY > splitPane.clientHeight - minConsoleHeight - resizer.clientHeight) {
+        offsetY = splitPane.clientHeight - minConsoleHeight - resizer.clientHeight;
+      }
       editorContainer.style.flexBasis = offsetY + 'px';
       consoleContainer.style.flexBasis = (splitPane.clientHeight - offsetY - resizer.clientHeight) + 'px';
     });
-    document.addEventListener('mouseup', function(e) {
+    document.addEventListener('mouseup', function() {
       isResizing = false;
     });
-    
+
+    // ==============================================
+    //  Initialize CodeMirror
+    // ==============================================
     let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
       mode: "python",
       theme: "material-darker",
@@ -305,8 +361,10 @@
       matchBrackets: true,
       viewportMargin: Infinity
     });
-    
-    // Override Python's input() with a synchronous native prompt.
+
+    // ==============================================
+    //  Initialize Pyodide
+    // ==============================================
     async function initializePyodide() {
       console.log("Loading Pyodide...");
       pyodideInstance = await loadPyodide();
@@ -329,7 +387,7 @@ builtins.input = custom_input
       addConsoleLine("Check About for important information.");
       addConsoleLine("------------------------------------------------------");
     }
-    
+
     // Add a new line to the console with a ">" prefix.
     function addConsoleLine(text, isError = false) {
       const line = document.createElement("p");
@@ -341,14 +399,17 @@ builtins.input = custom_input
       consoleElement.appendChild(line);
       consoleElement.scrollTop = consoleElement.scrollHeight;
     }
-    
+
+    // ==============================================
+    //  Running Python Code
+    // ==============================================
     async function runCode() {
       if (!pyodideInstance) {
+        // If Pyodide wasn't initialized yet, initialize it first
         consoleElement.innerHTML = "";
         addConsoleLine("Loading Pyodide... Please wait.");
         await initializePyodide();
       }
-      
       addConsoleLine("Executing...");
       let code = editor.getValue();
       try {
@@ -364,8 +425,10 @@ builtins.input = custom_input
         addConsoleLine(error.toString(), true);
       }
     }
-    
-    // Save file function: triggers a download of the editor content as script.py.
+
+    // ==============================================
+    //  Save File as script.py
+    // ==============================================
     function saveFile() {
       const code = editor.getValue();
       const blob = new Blob([code], { type: "text/plain" });
@@ -379,34 +442,36 @@ builtins.input = custom_input
       URL.revokeObjectURL(url);
       addConsoleLine("File saved as script.py");
     }
-    
+
+    // ==============================================
+    //  About Modal
+    // ==============================================
     function showAbout() {
       document.getElementById("aboutModal").classList.add("active");
     }
-    
     function closeAbout() {
       document.getElementById("aboutModal").classList.remove("active");
     }
-    
+
+    // Warn user on page unload if they have unsaved work
     window.addEventListener("beforeunload", function (e) {
       let message = "You have unsaved Python code. Do you want to save it before leaving?";
       e.returnValue = message;
       return message;
     });
-    
-    // Execute code on Shift+Enter
+
+    // Keyboard Shortcuts
+    // Shift+Enter to Run
+    // Shift+S to Save
     window.addEventListener("keydown", function (e) {
       if (e.shiftKey && e.key === "Enter") {
         runCode();
       }
-      // Save on Shift+S (case insensitive)
       if (e.shiftKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
         saveFile();
       }
     });
-    
-    initializePyodide();
   </script>
 </body>
 </html>
