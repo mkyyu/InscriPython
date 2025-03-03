@@ -25,7 +25,7 @@
       --primary-color: #0285ff;
       --error-color: #e53935;
       --text-color: #ffffff;
-      --border-radius: 6px;
+      --border-radius: 8px;
       --font-family: 'Roboto', sans-serif;
 
       --box-shadow: 0 2px 8px rgba(0,0,0,0.7);
@@ -73,7 +73,7 @@
       align-items: center;
       padding: 15px 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.8);
-      margin-bottom: 15px; /* added spacing below the header */
+      margin-bottom: 10px; /* spacing below header bar */
     }
 
     header h1 {
@@ -126,10 +126,11 @@
     .shortcut {
       font-size: 12px;
       opacity: 0.8;
-      margin-left: auto; /* so it aligns to the right in the same line */
+      margin-left: auto; /* aligns to right in the same line */
       display: inline-block;
     }
 
+    /* The main container with a vertical layout */
     main {
       flex: 1;
       display: flex;
@@ -137,39 +138,49 @@
       overflow: hidden;
     }
 
-    /* Split Pane for editor and console */
+    /* Split Pane for editor, resizer, console (vertical stack) */
     .split-pane {
       display: flex;
       flex-direction: column;
       height: 100%;
     }
 
-    .card {
+    /* Editor initially 60% height */
+    .editor-container {
+      flex: none;
+      height: 60%;
+      display: flex;
+      flex-direction: column;
+      margin: 8px;
       background-color: var(--card-bg);
       border-radius: var(--border-radius);
       box-shadow: var(--box-shadow);
       overflow: hidden;
-      margin: 8px;
     }
 
-    .editor-container,
-    .console-container {
-      overflow: hidden;
+    /* Draggable Resizer Bar (now transparent) */
+    .resizer {
+      flex: none;
+      height: 5px;          
+      background: transparent; /* invisible bar */
+      cursor: row-resize;      
+      margin: 0 8px;           
+      border-radius: var(--border-radius);
     }
-    
-    /* Editor is 60% height, console is 40% of remaining space */
-    .editor-container {
-      flex: 0 0 60%;
-      display: flex;
-      flex-direction: column;
-    }
+
+    /* Console takes up the remaining space */
     .console-container {
       flex: 1;
       display: flex;
       flex-direction: column;
+      margin: 8px;
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      overflow: hidden;
     }
 
-    /* Section Headers (Workspace + Output) */
+    /* Section headers (Workspace + Output) */
     .editor-header,
     .console-header {
       padding: 8px 15px;
@@ -252,6 +263,12 @@
       .shortcut {
         display: none; /* hide shortcuts on smaller screens */
       }
+      .editor-container {
+        height: 50%;
+      }
+      .resizer {
+        height: 5px;
+      }
     }
   </style>
 </head>
@@ -266,15 +283,22 @@
       <button class="run-button" onclick="runCode()">
         <span class="material-icons">play_arrow</span>
         <span>Run</span>
-        <!-- Updated shortcut to Cmd+Enter -->
         <span class="shortcut">Cmd+Enter</span>
       </button>
+
+      <!-- Load / Open Button -->
+      <button onclick="loadFile()">
+        <span class="material-icons">folder_open</span>
+        <span>Open</span>
+      </button>
+      <!-- Hidden file input for "Open" -->
+      <input type="file" id="fileInput" style="display:none;" accept=".py,.txt"/>
       
-      <!-- Save Button (still Shift+S, as requested) -->
+      <!-- Save Button: Cmd+S shortcut -->
       <button onclick="saveFile()">
         <span class="material-icons">save</span>
         <span>Save</span>
-        <span class="shortcut">Shift+S</span>
+        <span class="shortcut">Cmd+S</span>
       </button>
 
       <!-- About Button -->
@@ -285,16 +309,20 @@
     </div>
   </header>
   
+  <!-- Main area with an editor pane, an invisible draggable bar, and a console pane -->
   <main>
     <div class="split-pane">
       <!-- Editor Card: labeled "Workspace" -->
-      <div class="card editor-container">
+      <div class="editor-container" id="editorPane">
         <div class="editor-header">Workspace</div>
         <textarea id="editor">print("Hello, World!")</textarea>
       </div>
 
+      <!-- Draggable (invisible) horizontal bar -->
+      <div class="resizer" id="dragbar"></div>
+
       <!-- Console Card: labeled "Output" -->
-      <div class="card console-container">
+      <div class="console-container" id="consolePane">
         <div class="console-header">Standard Output</div>
         <div id="console"></div>
       </div>
@@ -310,10 +338,10 @@
     <br>
 
     <p>Disclaimer:<br>
-      THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTIES, EXPRESS OR IMPLIED, 
+      THE SOFTWARE IS PROVIDED 'AS IS' WITHOUT ANY WARRANTIES, EXPRESS OR IMPLIED,
       INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
-      OR NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE 
-      LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT, 
+      OR NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+      LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT,
       OR OTHERWISE, ARISING FROM THE USE OF THIS SOFTWARE.
     </p><br>
     <p>
@@ -329,6 +357,11 @@
   <script>
     let pyodideInstance = null;
     const consoleElement = document.getElementById("console");
+    const editorPane = document.getElementById("editorPane");
+    const resizer = document.getElementById("dragbar");
+    let isDragging = false;
+    let startY = 0;
+    let startHeight = 0;
 
     // ==============================================
     //  Initialize CodeMirror
@@ -409,7 +442,7 @@ builtins.input = custom_input
     }
 
     // ==============================================
-    //  Save File as script.py (Shift+S)
+    //  Save File as script.py (Cmd+S)
     // ==============================================
     function saveFile() {
       const code = editor.getValue();
@@ -423,6 +456,28 @@ builtins.input = custom_input
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       addConsoleLine("File saved as script.py");
+    }
+
+    // ==============================================
+    //  Load File (Open)
+    // ==============================================
+    function loadFile() {
+      const fileInput = document.getElementById("fileInput");
+      fileInput.onchange = (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          addConsoleLine("No file selected or operation canceled");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target.result;
+          editor.setValue(content);
+          addConsoleLine(`File loaded successfully: ${file.name}`);
+        };
+        reader.readAsText(file);
+      };
+      fileInput.click();
     }
 
     // ==============================================
@@ -447,18 +502,42 @@ builtins.input = custom_input
     // ==============================================
     //  Keyboard Shortcuts
     // ==============================================
-    // Cmd+Enter to Run
-    // Shift+S to Save
     window.addEventListener("keydown", function (e) {
       // On Mac, Cmd is `metaKey`
+      // Check for Cmd+Enter
       if (e.metaKey && e.key === "Enter") {
         e.preventDefault();
         runCode();
       }
-      if (e.shiftKey && e.key.toLowerCase() === "s") {
+      // Check for Cmd+S
+      if (e.metaKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
         saveFile();
       }
+    });
+
+    // ==============================================
+    //  Draggable Resizer Logic
+    // ==============================================
+    // Mouse down: start drag
+    resizer.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      startY = e.clientY;
+      startHeight = editorPane.offsetHeight;
+      e.preventDefault(); // prevent text-selection
+    });
+
+    // Mouse move: adjust editor's height
+    document.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      const dy = e.clientY - startY;
+      // Set new height for editor based on mouse movement
+      editorPane.style.height = (startHeight + dy) + "px";
+    });
+
+    // Mouse up: stop drag
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
     });
   </script>
 </body>
