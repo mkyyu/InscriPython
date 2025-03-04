@@ -423,7 +423,7 @@ builtins.input = custom_input
       // If Pyodide is not initialized yet, do so before execution
       if (!pyodideInstance) {
         consoleElement.innerHTML = "";
-        addConsoleLine("Loading Pyodide... Please wait.");
+        addConsoleLine("Loading Pyodide... Please wait. It may take some time.");
         await initializePyodide();
       }
       addConsoleLine("Executing...");
