@@ -1,4 +1,4 @@
-# Python Web IDE
+# WebPythonidae
 A simple web IDE for Python based on Pyodide.
 Try it out at python.mkyu.one!
 
