@@ -17,7 +17,7 @@
   
   <style>
     :root {
-      /* Dark-only theme variables */
+
       --bg-color: #121212;
       --header-bg: #212121;
       --card-bg: #2a2a2a;
@@ -32,7 +32,18 @@
       --transition: 0.3s;
     }
 
-    /* Reset and full-page layout */
+a {
+  color: inherit;     
+  text-decoration: none; 
+}
+
+a:hover,
+a:focus,
+a:active {
+  text-decoration: none; 
+}
+
+    
     * {
       margin: 0;
       padding: 0;
@@ -49,7 +60,7 @@
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
-      padding-bottom: 30px; /* bottom padding so there's extra space at page bottom */
+      padding-bottom: 30px; 
     }
     
 
@@ -72,7 +83,7 @@
       align-items: center;
       padding: 15px 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.8);
-      margin-bottom: 10px; /* spacing below header bar */
+      margin-bottom: 10px; 
     }
 
     header h1 {
@@ -125,7 +136,7 @@
     .shortcut {
       font-size: 12px;
       opacity: 0.8;
-      margin-left: auto; /* aligns to right in the same line */
+      margin-left: auto; 
       display: inline-block;
     }
 
@@ -332,16 +343,16 @@
       <span class="material-icons">extension</span>
       Mark's WebPythonidae IDE
     </h2>
-    <p>A lightweight in-browser Python editor and executor powered by Pyodide. </p>
+    <p>A lightweight in-browser Python editor and executor powered by Pyodide. </p> <br>
     <p>Continuous Release, Version 25.21</p>
     <br>
 
     <p><br>
-      This software comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law. 
+      <span class="material-icons">warning</span> This software comes with Absolutely No Warranty. 
     </p><br>
-    <p>
+    <p> <span class="material-icons">warning</span> 
       Copyright © 2024-2025 Mark Yu.
-      Some rights reserved. <br> WebPythonidae is licensed under the MIT License.
+      Some rights reserved. <br> <br>WebPythonidae is licensed under the MIT License.
     </p><br>
     <p>
       <a href="https://github.com/mkyyu/python-web-ide">View source (GitHub)</a><br><br>
