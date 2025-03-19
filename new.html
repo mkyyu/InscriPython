@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WebPythonidae IDE</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+
+  <script>
+    // 🔥 Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function saveToCloud() {
+      const code = editor.getValue();
+      await db.collection("codeSnippets").doc("latestCode").set({ code });
+      alert("Code saved to cloud!");
+    }
+
+    async function loadFromCloud() {
+      const doc = await db.collection("codeSnippets").doc("latestCode").get();
+      if (doc.exists) {
+        editor.setValue(doc.data().code);
+        alert("Code loaded from cloud!");
+      } else {
+        alert("No saved code found.");
+      }
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <h1>WebPythonidae</h1>
+    <div class="toolbar">
+      <button onclick="runCode()">Run</button>
+      <button onclick="saveFile()">Save Locally</button>
+      <button onclick="loadFile()">Open</button>
+      <button onclick="saveToCloud()">Save to Cloud</button>
+      <button onclick="loadFromCloud()">Load from Cloud</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="editor-container">
+      <textarea id="editor">print("Hello, World!")</textarea>
+    </div>
+    <div class="console-container" id="console"></div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+
+  <script>
+    let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+      mode: "python",
+      theme: "material-darker",
+      lineNumbers: true
+    });
+
+    function runCode() {
+      alert("Running Python code...");
+    }
+
+    function saveFile() {
+      const code = editor.getValue();
+      const blob = new Blob([code], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "script.py";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function loadFile() {
+      alert("Feature coming soon!");
+    }
+  </script>
+</body>
+</html>
