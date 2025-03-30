@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WebPythonidae IDE</title>
+  <title>InscriPython</title>
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
   <!-- CodeMirror -->
@@ -285,7 +285,7 @@ a:active {
   <header>
     <h1>
       <span class="material-icons">code</span>
-      WebPythonidae
+      InscriPython IDE
     </h1>
     <div class="toolbar">
 
@@ -339,25 +339,34 @@ a:active {
   </main>
   
   <div id="aboutModal" class="modal">
-    <h2>
-      <span class="material-icons">extension</span>
-      Mark's WebPythonidae IDE
-    </h2> <p>Continuous Release, Version 25.21</p>
-    <br><br>
-    <p>A lightweight in-browser Python editor and executor powered by Pyodide. </p> <br>
-   
-
+    <img 
+      src="https://inscribyte.com/logo.png" 
+      alt="Inscribyte Logo"
+      style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; margin-bottom: 15px; display: block; margin-left: 3px; margin-right: auto;" 
+    />
+  <br>
+    <h2 style="text-align: center;">
+     <!-- <span class="material-icons">extension</span> -->
+      InscriPython
+    </h2><br>
+    <p>A lightweight in-browser Python editor and executor.</p>
+    <br>
     <p><br>
-      This software comes with ABSOLUTELY NO WARRANTY. <br>
-      WebPythonidae is licensed under the MIT License.
+      This software comes with absolutely no warranty. <br>
+      InscriPython is licensed under the MIT License.
     </p>
     <br>
     <p> 
-      Copyright © 2024-2025 Mark Yu.
-      Some rights reserved. <br>
-    </p><br>
-    <button onclick="closeAbout()">Close</button> <button><a href="https://github.com/mkyyu/python-web-ide">View source on GitHub</a></button> 
+      Copyright © 2023-2025 Mark Yu.<br>
+       <br>
+    </p>
+    <br>
+    <button onclick="closeAbout()">Close</button>
+    <button>
+      <a href="https://github.com/mkyyu/python-web-ide">View source on GitHub</a>
+    </button> 
   </div>
+  
   
   <script>
     let pyodideInstance = null;
